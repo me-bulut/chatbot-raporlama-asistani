@@ -1,0 +1,6 @@
+# Python'a özgü dosyalar
+__pycache__/
+*.pyc
+
+# Ortam değişkenleri dosyası
+.env
