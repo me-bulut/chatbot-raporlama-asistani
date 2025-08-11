@@ -1,4 +1,4 @@
-# agents/data_analysis_agent.py (Düzeltilmiş Versiyon)
+# agents/data_analysis_agent.py (Complete English Version)
 
 import pandas as pd
 import numpy as np
@@ -19,11 +19,10 @@ from langchain.prompts import PromptTemplate
 import os
 from dotenv import load_dotenv
 
-# Yapılandırma
 load_dotenv()
 
 class AdvancedDataAnalysisAgent:
-    """Gelişmiş veri analizi ve tahmin özellikleri olan agent"""
+    """Advanced data analysis and prediction agent"""
     
     def __init__(self, df: pd.DataFrame):
         self.df = df
@@ -31,10 +30,10 @@ class AdvancedDataAnalysisAgent:
         self.memory = ConversationBufferMemory(memory_key="chat_history")
         
     def _initialize_llm(self):
-        """LLM'i başlat"""
+        """Initialize LLM"""
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY bulunamadı!")
+            raise ValueError("GOOGLE_API_KEY not found!")
         
         return ChatGoogleGenerativeAI(
             model="gemini-1.5-flash",
@@ -43,12 +42,12 @@ class AdvancedDataAnalysisAgent:
         )
     
     def _detect_time_column(self):
-        """Zaman sütununu otomatik tespit et"""
+        """Detect time column"""
         time_columns = []
         for col in self.df.columns:
             if self.df[col].dtype == 'datetime64[ns]':
                 time_columns.append(col)
-            elif 'tarih' in col.lower() or 'date' in col.lower() or 'time' in col.lower():
+            elif 'date' in col.lower() or 'time' in col.lower():
                 try:
                     pd.to_datetime(self.df[col])
                     time_columns.append(col)
@@ -57,57 +56,49 @@ class AdvancedDataAnalysisAgent:
         return time_columns[0] if time_columns else None
     
     def _detect_numeric_columns(self):
-        """Sayısal sütunları tespit et"""
+        """Detect numeric columns"""
         return self.df.select_dtypes(include=[np.number]).columns.tolist()
     
     def _detect_categorical_columns(self):
-        """Kategorik sütunları tespit et"""
+        """Detect categorical columns"""
         return self.df.select_dtypes(include=['object', 'category']).columns.tolist()
     
     def create_prediction_tool(self):
-        """Tahmin aracı oluştur"""
+        """Create prediction tool"""
         def predict_values(query: str) -> str:
             try:
-                # Basit trend analizi ve tahmin
                 time_col = self._detect_time_column()
                 numeric_cols = self._detect_numeric_columns()
                 
                 if not time_col or not numeric_cols:
-                    return "Tahmin için zaman serisi verisi bulunamadı."
+                    return "No time series data found for prediction."
                 
-                # Zaman sütununu datetime'a çevir
                 df_copy = self.df.copy()
                 df_copy[time_col] = pd.to_datetime(df_copy[time_col])
                 df_copy = df_copy.sort_values(time_col)
                 
-                # Her sayısal sütun için basit linear regression
                 predictions = {}
                 
                 for col in numeric_cols:
                     if col in df_copy.columns:
-                        # Son 12 ay veya mevcut verinin %80'i
                         recent_data = df_copy.tail(min(12, int(len(df_copy) * 0.8)))
                         
                         if len(recent_data) >= 3:
-                            # Basit trend hesaplama
                             x = np.arange(len(recent_data))
                             y = recent_data[col].values
                             
-                            # Linear regression katsayıları
                             slope = np.polyfit(x, y, 1)[0]
                             intercept = np.polyfit(x, y, 1)[1]
                             
-                            # Gelecek dönem tahmini
                             next_period = len(recent_data)
                             prediction = slope * next_period + intercept
                             
-                            # Trend analizi
                             if slope > 0:
-                                trend = "artan"
+                                trend = "increasing"
                             elif slope < 0:
-                                trend = "azalan"
+                                trend = "decreasing"
                             else:
-                                trend = "sabit"
+                                trend = "stable"
                             
                             predictions[col] = {
                                 'prediction': prediction,
@@ -117,146 +108,109 @@ class AdvancedDataAnalysisAgent:
                                 'growth_rate': (slope / recent_data[col].mean() * 100) if recent_data[col].mean() != 0 else 0
                             }
                 
-                # Sonuçları formatla
-                result = "📈 TAHMİN ANALİZİ:\n\n"
+                result = "📈 FORECAST ANALYSIS:\n\n"
                 for col, pred in predictions.items():
                     result += f"**{col}:**\n"
-                    result += f"- Gelecek dönem tahmini: {pred['prediction']:.2f}\n"
-                    result += f"- Trend: {pred['trend']} ({pred['growth_rate']:.1f}% büyüme oranı)\n"
-                    result += f"- Mevcut ortalama: {pred['current_avg']:.2f}\n\n"
+                    result += f"- Next period prediction: {pred['prediction']:.2f}\n"
+                    result += f"- Trend: {pred['trend']} ({pred['growth_rate']:.1f}% growth rate)\n"
+                    result += f"- Current average: {pred['current_avg']:.2f}\n\n"
                 
                 return result
                 
             except Exception as e:
-                return f"Tahmin hesaplanırken hata oluştu: {str(e)}"
+                return f"Error calculating prediction: {str(e)}"
         
         return Tool(
             name="prediction_tool",
-            description="Zaman serisi verilerinden gelecek dönem tahminleri yapar",
+            description="Makes future period predictions from time series data",
             func=predict_values
         )
     
     def create_visualization_tool(self):
-        """Görselleştirme aracı oluştur - GÜÇLENDİRİLDİ"""
+        """Create visualization tool - OPTIMIZED DIMENSIONS"""
         def create_charts(query: str) -> str:
             try:
-                # Matplotlib ayarları
+                # Matplotlib settings - VERY SMALL CHART DIMENSIONS
                 plt.style.use('default')
-                plt.rcParams['figure.figsize'] = (10, 6)
-                plt.rcParams['font.size'] = 10
+                plt.rcParams['figure.figsize'] = (6, 4)  # VERY SMALL SIZE
+                plt.rcParams['font.size'] = 8
+                plt.rcParams['axes.titlesize'] = 9
+                plt.rcParams['axes.labelsize'] = 8
+                plt.rcParams['xtick.labelsize'] = 7
+                plt.rcParams['ytick.labelsize'] = 7
                 
-                # Grafik türünü belirle - DAHA GÜÇLÜ
                 query_lower = query.lower()
                 
-                # Pasta grafiği kontrolü
-                if any(word in query_lower for word in ['pasta', 'pie', 'dağılım']):
+                if any(word in query_lower for word in ['pie', 'distribution']):
                     return self._create_pie_chart(query)
-                
-                # Çizgi grafiği kontrolü  
-                elif any(word in query_lower for word in ['line', 'çizgi', 'trend', 'zaman']):
+                elif any(word in query_lower for word in ['line', 'trend', 'time']):
                     return self._create_line_chart(query)
-                
-                # Scatter plot kontrolü
-                elif any(word in query_lower for word in ['scatter', 'nokta', 'korelasyon']):
+                elif any(word in query_lower for word in ['scatter', 'correlation']):
                     return self._create_scatter_plot(query)
-                
-                # Tahmin grafiği kontrolü
-                elif any(word in query_lower for word in ['tahmin', 'gelecek', 'forecast']):
+                elif any(word in query_lower for word in ['prediction', 'forecast']):
                     return self._create_prediction_chart(query)
-                
-                # Bar grafiği kontrolü (son seçenek)
-                elif any(word in query_lower for word in ['bar', 'çubuk', 'sütun']):
+                elif any(word in query_lower for word in ['bar', 'column']):
                     return self._create_bar_chart(query)
-                
                 else:
-                    # Varsayılan olarak en uygun grafiği seç
                     return self._create_auto_chart(query)
                     
             except Exception as e:
-                return f"Grafik oluşturulurken hata: {str(e)}"
+                return f"Chart creation error: {str(e)}"
         
         return Tool(
             name="visualization_tool",
-            description="Veriler için uygun grafikleri ve görselleştirmeleri oluşturur",
+            description="Creates appropriate charts for data",
             func=create_charts
         )
     
     def _create_bar_chart(self, query):
-        """Bar chart oluştur"""
+        """Create bar chart - OPTIMIZED DIMENSIONS"""
         categorical_cols = self._detect_categorical_columns()
         numeric_cols = self._detect_numeric_columns()
         
         if not categorical_cols or not numeric_cols:
-            return "Bar chart için uygun veri bulunamadı."
+            return "No suitable data found for bar chart."
         
-        # İlk kategorik ve sayısal sütunu kullan
         cat_col = categorical_cols[0]
         num_col = numeric_cols[0]
         
-        # Verileri grupla
-        grouped_data = self.df.groupby(cat_col)[num_col].sum().sort_values(ascending=False)
-        
-        # Grafik oluştur
-        fig, ax = plt.subplots(figsize=(12, 8))
-        bars = ax.bar(grouped_data.index, grouped_data.values)
-        ax.set_title(f'{cat_col} Bazında {num_col} Dağılımı', fontsize=16, fontweight='bold')
-        ax.set_xlabel(cat_col, fontsize=12)
-        ax.set_ylabel(num_col, fontsize=12)
-        plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
-        
-        # Değerleri bar'ların üstüne yaz
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{height:.0f}', ha='center', va='bottom')
-        
-        plt.tight_layout()
-        ax.grid(axis='y', alpha=0.3)
-        
-        # ÖNEMLİ: plt.show() yerine figure'ı return et
         return f"""
 ```python
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# Bar chart oluştur
-categorical_cols = {categorical_cols}
-numeric_cols = {numeric_cols}
+# Create bar chart - OPTIMIZED SIZE
 cat_col = '{cat_col}'
 num_col = '{num_col}'
 
 grouped_data = df.groupby(cat_col)[num_col].sum().sort_values(ascending=False)
 
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(6, 4))  # VERY SMALL SIZE
 bars = plt.bar(grouped_data.index, grouped_data.values, color='skyblue', edgecolor='navy', alpha=0.7)
-plt.title(f'{cat_col} Bazında {num_col} Dağılımı', fontsize=16, fontweight='bold')
-plt.xlabel(cat_col, fontsize=12)
-plt.ylabel(num_col, fontsize=12)
-plt.xticks(rotation=45, ha='right')
+plt.title(f'{cat_col} vs {num_col} Distribution', fontsize=9, fontweight='bold')
+plt.xlabel(cat_col, fontsize=8)
+plt.ylabel(num_col, fontsize=8)
+plt.xticks(rotation=45, ha='right', fontsize=7)  # PREVENT TEXT OVERLAP
+plt.yticks(fontsize=7)
 
-# Değerleri bar'ların üstüne yaz
+# Add values on top of bars
 for bar in bars:
     height = bar.get_height()
     plt.text(bar.get_x() + bar.get_width()/2., height,
-            f'{height:.0f}', ha='center', va='bottom')
+            f'{{height:.0f}}', ha='center', va='bottom', fontsize=7)
 
 plt.grid(axis='y', alpha=0.3)
-plt.tight_layout()
+plt.tight_layout()  # PREVENT TEXT OVERLAP
 ```
 """
     
     def _create_line_chart(self, query):
-        """Line chart oluştur"""
+        """Create line chart - OPTIMIZED DIMENSIONS"""
         time_col = self._detect_time_column()
         numeric_cols = self._detect_numeric_columns()
         
         if not time_col or not numeric_cols:
-            return "Trend grafiği için zaman serisi verisi bulunamadı."
-        
-        # Zaman sütununu datetime'a çevir
-        df_copy = self.df.copy()
-        df_copy[time_col] = pd.to_datetime(df_copy[time_col])
-        df_copy = df_copy.sort_values(time_col)
+            return "No time series data found for trend chart."
         
         num_col = numeric_cols[0]
         
@@ -265,29 +219,61 @@ plt.tight_layout()
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# Zaman sütununu datetime'a çevir
+# Convert time column to datetime
 df_copy = df.copy()
 df_copy['{time_col}'] = pd.to_datetime(df_copy['{time_col}'])
 df_copy = df_copy.sort_values('{time_col}')
 
-plt.figure(figsize=(14, 8))
-plt.plot(df_copy['{time_col}'], df_copy['{num_col}'], marker='o', linewidth=2, markersize=6, color='blue', alpha=0.7)
-plt.title('{num_col} Zaman İçinde Değişim', fontsize=16, fontweight='bold')
-plt.xlabel('Tarih', fontsize=12)
-plt.ylabel('{num_col}', fontsize=12)
-plt.xticks(rotation=45)
+plt.figure(figsize=(6, 4))  # VERY SMALL SIZE
+plt.plot(df_copy['{time_col}'], df_copy['{num_col}'], marker='o', linewidth=2, markersize=3, color='blue', alpha=0.7)
+plt.title('{num_col} Change Over Time', fontsize=9, fontweight='bold')
+plt.xlabel('Date', fontsize=8)
+plt.ylabel('{num_col}', fontsize=8)
+plt.xticks(rotation=45, ha='right', fontsize=7)  # PREVENT TEXT OVERLAP
+plt.yticks(fontsize=7)
 plt.grid(True, alpha=0.3)
-plt.tight_layout()
+plt.tight_layout()  # PREVENT TEXT OVERLAP
+```
+"""
+    
+    def _create_pie_chart(self, query):
+        """Create pie chart - OPTIMIZED DIMENSIONS"""
+        categorical_cols = self._detect_categorical_columns()
+        numeric_cols = self._detect_numeric_columns()
+        
+        if not categorical_cols or not numeric_cols:
+            return "No suitable data found for pie chart."
+        
+        cat_col = categorical_cols[0]
+        num_col = numeric_cols[0]
+        
+        return f"""
+```python
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Create pie chart - OPTIMIZED SIZE
+cat_col = '{cat_col}'
+num_col = '{num_col}'
+
+grouped_data = df.groupby(cat_col)[num_col].sum()
+
+plt.figure(figsize=(6, 4))  # VERY SMALL SIZE
+colors = plt.cm.Set3(range(len(grouped_data)))
+plt.pie(grouped_data.values, labels=grouped_data.index, autopct='%1.1f%%', 
+        startangle=90, colors=colors, textprops={{'fontsize': 7}})  # SMALL FONT
+plt.title(f'{cat_col} vs {num_col} Distribution', fontsize=9, fontweight='bold', pad=10)
+plt.tight_layout()  # PREVENT TEXT OVERLAP
 ```
 """
     
     def _create_prediction_chart(self, query):
-        """Tahmin grafiği oluştur"""
+        """Create prediction chart - OPTIMIZED DIMENSIONS"""
         time_col = self._detect_time_column()
         numeric_cols = self._detect_numeric_columns()
         
         if not time_col or not numeric_cols:
-            return "Tahmin grafiği için zaman serisi verisi bulunamadı."
+            return "No time series data found for prediction chart."
         
         num_col = numeric_cols[0]
         
@@ -298,25 +284,25 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta
 
-# Veriyi hazırla
+# Prepare data
 df_copy = df.copy()
 df_copy['{time_col}'] = pd.to_datetime(df_copy['{time_col}'])
 df_copy = df_copy.sort_values('{time_col}')
 
-plt.figure(figsize=(14, 8))
+plt.figure(figsize=(6, 4))  # VERY SMALL SIZE
 
-# Mevcut veri
+# Current data
 plt.plot(df_copy['{time_col}'], df_copy['{num_col}'], 
-         marker='o', label='Gerçek Veriler', linewidth=2, color='blue')
+         marker='o', label='Actual Data', linewidth=2, color='blue', markersize=3)
 
-# Basit tahmin (son 6 ayın ortalaması ile trend)
+# Simple prediction
 recent_data = df_copy.tail(6)
 if len(recent_data) >= 3:
     x = np.arange(len(recent_data))
     y = recent_data['{num_col}'].values
     slope, intercept = np.polyfit(x, y, 1)
     
-    # Gelecek 3 dönem tahmini
+    # Next 3 periods prediction
     future_periods = 3
     last_date = df_copy['{time_col}'].max()
     
@@ -324,27 +310,54 @@ if len(recent_data) >= 3:
     future_values = []
     
     for i in range(1, future_periods + 1):
-        future_date = last_date + timedelta(days=30*i)  # Aylık tahmin
+        future_date = last_date + timedelta(days=30*i)
         future_value = slope * (len(recent_data) + i) + intercept
         future_dates.append(future_date)
         future_values.append(future_value)
     
     plt.plot(future_dates, future_values,
             marker='s', linestyle='--', color='red',
-            label='Tahmin', linewidth=2)
+            label='Prediction', linewidth=2, markersize=3)
 
-plt.title('{num_col} - Mevcut Veriler ve Gelecek Tahminler', fontsize=16, fontweight='bold')
-plt.xlabel('Tarih', fontsize=12)
-plt.ylabel('{num_col}', fontsize=12)
-plt.legend()
-plt.xticks(rotation=45)
+plt.title('{num_col} - Current Data and Future Predictions', fontsize=9, fontweight='bold')
+plt.xlabel('Date', fontsize=8)
+plt.ylabel('{num_col}', fontsize=8)
+plt.legend(fontsize=7)
+plt.xticks(rotation=45, ha='right', fontsize=7)  # PREVENT TEXT OVERLAP
+plt.yticks(fontsize=7)
 plt.grid(True, alpha=0.3)
-plt.tight_layout()
+plt.tight_layout()  # PREVENT TEXT OVERLAP
+```
+"""
+    
+    def _create_scatter_plot(self, query):
+        """Create scatter plot - OPTIMIZED DIMENSIONS"""
+        numeric_cols = self._detect_numeric_columns()
+        
+        if len(numeric_cols) < 2:
+            return "At least 2 numeric columns required for scatter plot."
+        
+        x_col = numeric_cols[0]
+        y_col = numeric_cols[1]
+        
+        return f"""
+```python
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(6, 4))  # VERY SMALL SIZE
+plt.scatter(df['{x_col}'], df['{y_col}'], alpha=0.6, color='blue', s=20)
+plt.title('{x_col} vs {y_col} Relationship', fontsize=9, fontweight='bold')
+plt.xlabel('{x_col}', fontsize=8)
+plt.ylabel('{y_col}', fontsize=8)
+plt.xticks(fontsize=7)
+plt.yticks(fontsize=7)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()  # PREVENT TEXT OVERLAP
 ```
 """
     
     def _create_auto_chart(self, query):
-        """Otomatik uygun grafik seç"""
+        """Auto select chart"""
         categorical_cols = self._detect_categorical_columns()
         numeric_cols = self._detect_numeric_columns()
         time_col = self._detect_time_column()
@@ -354,78 +367,92 @@ plt.tight_layout()
         elif categorical_cols and numeric_cols:
             return self._create_bar_chart(query)
         else:
-            return "Uygun grafik türü belirlenemedi."
+            return "Unable to determine suitable chart type."
     
     def create_agent(self):
-        """Geliştirilmiş agent oluştur"""
+        """Create enhanced agent - ENGLISH FOCUSED"""
         
-        # Özel promptlar
         system_prompt = """
-        Sen gelişmiş bir veri analiz uzmanısın. Aşağıdaki yeteneklerin var:
+        You are an advanced data analysis expert and you MUST ALWAYS respond in ENGLISH. You have these capabilities:
         
-        1. TEMEL ANALİZ: Veri özetleme, istatistikler, gruplamalar
-        2. TAHMİN: Zaman serisi analizi, trend tahminleri, gelecek dönem hesaplamaları
-        3. GÖRSELLEŞTİRME: Bar, line, pie, scatter grafikleri
+        1. BASIC ANALYSIS: Data summarization, statistics, groupings
+        2. FORECAST: Time series analysis, trend predictions, future period calculations
+        3. GRAPHICS: Bar, line, pie, scatter charts
         
-        ÇOK ÖNEMLİ - KULLANICI SORUSUNU DOĞRU ANLA:
+        VERY IMPORTANT - UNDERSTAND USER QUESTION AND ALWAYS RESPOND IN ENGLISH:
         
-        1. SORU ANALİZİ:
-           - Kullanıcının hangi SÜTUNU istediğini DİKKATLE belirle
-           - "Bölgelere göre" = Bölge sütununu kullan
-           - "Kategorilere göre" = Kategori sütununu kullan  
-           - "Müşterilere göre" = Müşteri sütununu kullan
-           - "Şehirlere göre" = Şehir sütununu kullan
+        1. QUESTION ANALYSIS:
+           - Carefully determine which COLUMN the user wants
+           - "by regions" = Use Region column
+           - "by categories" = Use Category column  
+           - "by customers" = Use Customer column
+           - "by cities" = Use City column
         
-        2. GRAFİK TÜRÜ ANALİZİ:
-           - "pasta grafiği" = MUTLAKA plt.pie() kullan
-           - "bar grafiği" = plt.bar() kullan
-           - "çizgi grafiği" = plt.plot() kullan
-           - "scatter" = plt.scatter() kullan
+        2. CHART TYPE ANALYSIS:
+           - "pie chart" = MUST use plt.pie()
+           - "bar chart" = use plt.bar()
+           - "line chart" = use plt.plot()
+           - "scatter" = use plt.scatter()
         
-        3. SÜTUN SEÇİMİ KURALLARI:
-           - Kullanıcının sorduğu sütunu MUTLAKA kullan
-           - Yanlış sütun seçme!
-           - Emin değilsen soruyu tekrar oku
+        3. COLUMN SELECTION RULES:
+           - Use the exact column the user asks for
+           - Never select wrong column!
+           - If unsure, re-read the question carefully
         
-        4. TAHMİN SORULARI İÇİN:
-           - Zaman serisi analizi yap
-           - Trend hesapla (artan/azalan/sabit)
-           - Gelecek değerleri tahmin et
-           - Matematiksel modelleme kullan
-           - prediction_tool'u kullan
-           - Sonucu görselleştir
+        4. CHART DIMENSIONS (VERY IMPORTANT):
+           - Use plt.figure(figsize=(6, 4)) - VERY SMALL SIZE for compact display!
+           - Use plt.xticks(rotation=45, ha='right', fontsize=7) - PREVENT TEXT OVERLAP!
+           - Use plt.tight_layout() - FOR PROPER LAYOUT!
+           - All fontsize values very small: 7-9 range
+           - Chart titles fontsize=9
+           - NEVER use plt.show()!
         
-        5. GRAFİK SORULARI İÇİN:
-           - visualization_tool'u kullan
-           - Kullanıcının istediği GRAFİK TÜRÜNÜ kullan
-           - Python kodu oluştur (plt.show() değil, plt.tight_layout() kullan)
-           - Kullanıcının istediği SÜTUNU kullan
+        5. FOR FORECAST QUESTIONS:
+           - Perform time series analysis
+           - Calculate trend (increasing/decreasing/stable)
+           - Predict future values
+           - Use mathematical modeling
+           - Use prediction_tool
+           - Visualize results
+           - Explain everything in English
         
-        ÖNEMLİ: 
-        - Kullanıcının sorusunu KELİME KELİME analiz et
-        - Yanlış sütun seçersen analiz tamamen yanlış olur
-        - Grafik kodlarında ASLA plt.show() kullanma, sadece plt.tight_layout() kullan!
-        - YANIT DİLİ: TÜRKÇE
+        6. FOR GRAPHICS QUESTIONS:
+           - Use visualization_tool
+           - Use the exact CHART TYPE the user wants
+           - Create Python code (use plt.tight_layout(), never plt.show())
+           - Use the exact COLUMN the user wants
+           - All chart titles and labels must be in English
         
-        Her zaman Türkçe yanıt ver ve sonuçları detaylı açıkla.
+        7. RESPONSE LANGUAGE: ALWAYS ENGLISH
+           - Every explanation must be in English
+           - Chart titles must be in English
+           - All results must be in English
+           - Never use any other language
+        
+        CRITICAL REQUIREMENTS: 
+        - Analyze user's question WORD BY WORD
+        - If you select wrong column, the entire analysis will be wrong
+        - In chart codes NEVER use plt.show(), only use plt.tight_layout()!
+        - Optimize chart dimensions (6x4) to fit page
+        - MANDATORY: ALL RESPONSES IN ENGLISH ONLY
+        
+        You must always respond in English and explain all results in detail using English.
         """
         
-        # Araçları hazırla
         tools = [
             self.create_prediction_tool(),
             self.create_visualization_tool()
         ]
         
-        # Ana pandas agent'ı oluştur - HATA YÖNETİMİ İLE
         agent = create_pandas_dataframe_agent(
             llm=self.llm,
             df=self.df,
             agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=False,  # Verbose False yap
-            handle_parsing_errors=True,  # Parsing hatalarını yakala
+            verbose=False,
+            handle_parsing_errors=True,
             allow_dangerous_code=True,
             extra_tools=tools,
-            max_iterations=3,  # Maksimum iterasyon sayısını sınırla
+            max_iterations=3,
             agent_kwargs={
                 'system_message': system_prompt
             }
@@ -434,15 +461,14 @@ plt.tight_layout()
         return agent
 
 def create_pandas_agent(df: pd.DataFrame):
-    """Ana agent oluşturma fonksiyonu"""
+    """Main agent creation function"""
     try:
         advanced_agent = AdvancedDataAnalysisAgent(df)
         return advanced_agent.create_agent()
     except Exception as e:
-        # Fallback basit agent
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY bulunamadı!")
+            raise ValueError("GOOGLE_API_KEY not found!")
         
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
         
@@ -450,8 +476,8 @@ def create_pandas_agent(df: pd.DataFrame):
             llm,
             df,
             agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=False,  # Verbose False
-            handle_parsing_errors=True,  # Parsing hatalarını yakala
+            verbose=False,
+            handle_parsing_errors=True,
             allow_dangerous_code=True,
-            max_iterations=3  # Maksimum iterasyon sınırla
+            max_iterations=3
         )

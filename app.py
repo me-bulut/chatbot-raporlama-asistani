@@ -1,4 +1,4 @@
-# app.py (Tamamen Düzeltilmiş Versiyon)
+# app.py (Complete English Version)
 
 import streamlit as st
 import pandas as pd
@@ -15,15 +15,12 @@ from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
 
-# Agent import
+# Agent import - FIXED DEPRECATION WARNING
 from agents.data_analysis_agent import create_pandas_agent
-import langchain
-from langchain.cache import InMemoryCache
-langchain.llm_cache = InMemoryCache()
 
-# Streamlit yapılandırması
+# Streamlit configuration
 st.set_page_config(
-    page_title="AI Raporlama Asistanı",
+    page_title="AI Data Analysis Assistant",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -55,15 +52,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Ana başlık
+# Main header
 st.markdown("""
 <div class="main-header">
-    <h1 style="color: white; margin: 0;">🤖 Yapay Zeka Destekli Dinamik Raporlama Asistanı</h1>
-    <p style="color: white; margin: 0; opacity: 0.9;">Veri analizi, tahmin ve görselleştirme için akıllı asistanınız</p>
+    <h1 style="color: white; margin: 0;">🤖 AI Data Analysis Assistant</h1>
+    <p style="color: white; margin: 0; opacity: 0.9;">Your intelligent assistant for data analysis, prediction and visualization</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Session state başlatma
+# Session state initialization
 def initialize_session_state():
     if 'df' not in st.session_state:
         st.session_state.df = None
@@ -76,17 +73,16 @@ def initialize_session_state():
 
 initialize_session_state()
 
-# Basit analiz alternatifi - agent hata verdiğinde
+# Simple analysis alternative
 def create_simple_analysis(df, question, analysis_type):
-    """Agent hata verdiğinde SORU TÜRÜNE GÖRE basit analiz yap"""
+    """Simple analysis when agent fails"""
     try:
         question_lower = question.lower()
         
-        if analysis_type == "Tahmin ve Forecasting" or any(word in question_lower for word in ['tahmin', 'gelecek', 'forecast', 'trend']):
-            # SADECE TAHMİN SORULARI İÇİN
+        if analysis_type == "Forecast" or any(word in question_lower for word in ['predict', 'forecast', 'future', 'trend']):
             time_cols = []
             for col in df.columns:
-                if 'tarih' in col.lower() or 'date' in col.lower() or 'time' in col.lower():
+                if 'date' in col.lower() or 'time' in col.lower():
                     time_cols.append(col)
                 elif df[col].dtype == 'datetime64[ns]':
                     time_cols.append(col)
@@ -94,7 +90,6 @@ def create_simple_analysis(df, question, analysis_type):
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
             
             if time_cols and numeric_cols:
-                # Tahmin analizi kodu (önceki gibi)
                 time_col = time_cols[0]
                 num_col = numeric_cols[0]
                 
@@ -108,7 +103,7 @@ def create_simple_analysis(df, question, analysis_type):
                     y = recent_data[num_col].values
                     slope = np.polyfit(x, y, 1)[0]
                     
-                    trend = "artan" if slope > 0 else "azalan" if slope < 0 else "sabit"
+                    trend = "increasing" if slope > 0 else "decreasing" if slope < 0 else "stable"
                     
                     future_predictions = []
                     for i in range(1, 7):
@@ -116,111 +111,86 @@ def create_simple_analysis(df, question, analysis_type):
                         future_predictions.append(pred)
                     
                     return f"""
-**📈 TREND ANALİZİ VE TAHMİN:**
+**📈 TREND ANALYSIS AND PREDICTION:**
 
-**Mevcut Durum:**
-- Analiz edilen değişken: {num_col}
-- Veri aralığı: {df_copy[time_col].min().strftime('%Y-%m')} - {df_copy[time_col].max().strftime('%Y-%m')}
-- Trend yönü: **{trend.upper()}**
-- Ortalama değer: {recent_data[num_col].mean():.2f}
+**Current Status:**
+- Analyzed variable: {num_col}
+- Data range: {df_copy[time_col].min().strftime('%Y-%m')} - {df_copy[time_col].max().strftime('%Y-%m')}
+- Trend direction: **{trend.upper()}**
+- Average value: {recent_data[num_col].mean():.2f}
 
-**Gelecek 6 Ay Tahmini:**
-- 1. Ay: {future_predictions[0]:.2f}
-- 2. Ay: {future_predictions[1]:.2f}
-- 3. Ay: {future_predictions[2]:.2f}
-- 4. Ay: {future_predictions[3]:.2f}
-- 5. Ay: {future_predictions[4]:.2f}
-- 6. Ay: {future_predictions[5]:.2f}
+**Next 6 Months Prediction:**
+- Month 1: {future_predictions[0]:.2f}
+- Month 2: {future_predictions[1]:.2f}
+- Month 3: {future_predictions[2]:.2f}
+- Month 4: {future_predictions[3]:.2f}
+- Month 5: {future_predictions[4]:.2f}
+- Month 6: {future_predictions[5]:.2f}
 
-**Analiz Özeti:**
-- Son dönemde **{trend}** eğilim gözlemleniyor
-- 6 aylık ortalama tahmin: {np.mean(future_predictions):.2f}
-- Değişim oranı: {((future_predictions[-1] - recent_data[num_col].iloc[-1]) / recent_data[num_col].iloc[-1] * 100):.1f}%
+**Analysis Summary:**
+- Recent period shows **{trend}** trend
+- 6-month average forecast: {np.mean(future_predictions):.2f}
+- Change rate: {((future_predictions[-1] - recent_data[num_col].iloc[-1]) / recent_data[num_col].iloc[-1] * 100):.1f}%
 """
             else:
-                return "Tahmin analizi için uygun zaman serisi verisi bulunamadı."
-        
-        elif analysis_type == "Genel Analiz" or any(word in question_lower for word in ['analiz', 'özet', 'genel', 'bilgi']):
-            # GENEL ANALİZ SORULARI İÇİN
-            return f"""
-**📋 GENEL VERİ ANALİZİ:**
-
-**Veri Seti Özellikleri:**
-- Toplam kayıt sayısı: {len(df):,}
-- Sütun sayısı: {len(df.columns)}
-- Eksik değer oranı: %{(df.isnull().sum().sum() / (len(df) * len(df.columns))) * 100:.1f}
-
-**Sayısal Sütunlar ({len(df.select_dtypes(include=[np.number]).columns)} adet):**
-{', '.join(df.select_dtypes(include=[np.number]).columns.tolist())}
-
-**Kategorik Sütunlar ({len(df.select_dtypes(include=['object', 'category']).columns)} adet):**
-{', '.join(df.select_dtypes(include=['object', 'category']).columns.tolist())}
-
-**Temel İstatistikler:**
-- En çok satış: {df.select_dtypes(include=[np.number]).max().max():.2f}
-- En az değer: {df.select_dtypes(include=[np.number]).min().min():.2f}
-- Ortalama: {df.select_dtypes(include=[np.number]).mean().mean():.2f}
-
-💡 **Öneriler:**
-- Grafik analizi için: "Kategorilere göre pasta grafiği göster"
-- Trend analizi için: "Gelecek dönem tahminini yap"
-- Detaylı analiz için: "En çok satan ürünü bul"
-"""
+                return "No suitable time series data found for prediction analysis."
         
         else:
-            # DİĞER TÜM SORULAR İÇİN - BASIT YANITLAR
             categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
             
             if categorical_cols and numeric_cols:
-                # En basit analiz
                 cat_col = categorical_cols[0]
                 num_col = numeric_cols[0]
                 grouped = df.groupby(cat_col)[num_col].sum()
                 top_category = grouped.idxmax()
                 
                 return f"""
-**📊 HİZLI ANALİZ:**
+**📊 QUICK ANALYSIS:**
 
-**Soru:** "{question}"
+**Question:** "{question}"
 
-**Temel Bulgular:**
-- En yüksek değere sahip kategori: **{top_category}**
-- Bu kategorinin değeri: {grouped.max():.2f}
-- Toplam kategori sayısı: {len(grouped)}
-- Genel ortalama: {grouped.mean():.2f}
+**Key Findings:**
+- Highest value category: **{top_category}**
+- This category's value: {grouped.max():.2f}
+- Total categories: {len(grouped)}
+- Overall average: {grouped.mean():.2f}
 
-**Veri Özeti:**
-- {len(df)} kayıt analiz edildi
-- {len(categorical_cols)} kategorik, {len(numeric_cols)} sayısal sütun
+**Data Summary:**
+- {len(df)} records analyzed
+- {len(categorical_cols)} categorical, {len(numeric_cols)} numeric columns
 
-💡 **Daha detaylı analiz için grafik talep edebilirsiniz.**
+💡 **You can request charts for more detailed analysis.**
 """
             else:
                 return f"""
-**ℹ️ Soru:** "{question}"
+**ℹ️ Question:** "{question}"
 
-**Veri Seti Bilgileri:**
-- {len(df)} satır, {len(df.columns)} sütun
-- Mevcut sütunlar: {', '.join(df.columns.tolist())}
+**Dataset Information:**
+- {len(df)} rows, {len(df.columns)} columns
+- Available columns: {', '.join(df.columns.tolist())}
 
-**💡 Öneriler:**
-- "Kategorilere göre grafik göster"
-- "Trend analizi yap"  
-- "En yüksek değerleri bul"
+**💡 Suggestions:**
+- "Show chart by categories"
+- "Perform trend analysis"  
+- "Find highest values"
 """
             
     except Exception as e:
-        return f"Analiz sırasında hata oluştu: {str(e)}"
+        return f"Error during analysis: {str(e)}"
 
-# Gelişmiş kod çalıştırma fonksiyonu - AKILLI KOD DEĞİŞTİRME
+# Advanced code execution function
 def execute_agent_code_advanced(code_string, df):
-    """Agent kodunu gelişmiş şekilde çalıştır - kod değiştirme ile"""
+    """Execute agent code with optimized graphics"""
     
-    # Matplotlib ayarları
+    # Matplotlib settings - VERY SMALL SIZES
     plt.style.use('default')
-    plt.rcParams['figure.figsize'] = (10, 6)
-    plt.rcParams['font.size'] = 10
+    plt.rcParams['figure.figsize'] = (6, 4)  # Much smaller size
+    plt.rcParams['font.size'] = 8  # Smaller font
+    plt.rcParams['axes.titlesize'] = 9
+    plt.rcParams['axes.labelsize'] = 8
+    plt.rcParams['xtick.labelsize'] = 7
+    plt.rcParams['ytick.labelsize'] = 7
     
     exec_globals = {
         'df': df,
@@ -241,11 +211,9 @@ def execute_agent_code_advanced(code_string, df):
     try:
         plt.close('all')
         
-        # Kod çalıştır
         with redirect_stdout(output_buffer), redirect_stderr(error_buffer):
             exec(code_string, exec_globals)
         
-        # Matplotlib figürlerini yakala
         matplotlib_figs = []
         for i in plt.get_fignums():
             fig = plt.figure(i)
@@ -268,58 +236,47 @@ def execute_agent_code_advanced(code_string, df):
             'matplotlib_figs': []
         }
 
-# KULLANICI İSTEĞİNE GÖRE KOD DEĞİŞTİRME
 def modify_code_based_on_request(code_string, user_question):
-    """Kullanıcının isteğine göre kodu değiştir"""
+    """Modify code based on user request"""
     
-    # Pasta grafiği istenmişse bar kodunu pasta ile değiştir
-    if any(word in user_question.lower() for word in ['pasta', 'pie', 'dağılım']):
+    if any(word in user_question.lower() for word in ['pie', 'distribution']):
         if 'plt.bar(' in code_string or 'ax.bar(' in code_string:
-            # Bar kodunu pasta ile değiştir
             lines = code_string.split('\n')
             new_lines = []
             
             for line in lines:
                 if 'plt.bar(' in line or 'ax.bar(' in line:
-                    # Bar satırını pasta ile değiştir
                     if 'grouped_data' in code_string:
                         new_lines.append("plt.pie(grouped_data.values, labels=grouped_data.index, autopct='%1.1f%%', startangle=90)")
                     else:
-                        new_lines.append("# Bar kodu pasta grafiği ile değiştirildi")
+                        new_lines.append("# Bar code replaced with pie chart")
                 elif 'xlabel' in line or 'ylabel' in line:
-                    # Pasta grafiğinde x/y label gerekmez
                     new_lines.append("# " + line)
                 else:
                     new_lines.append(line)
             
             return '\n'.join(new_lines)
     
-    # Çizgi grafiği istenmişse
-    elif any(word in user_question.lower() for word in ['çizgi', 'line', 'trend']):
+    elif any(word in user_question.lower() for word in ['line', 'trend']):
         if 'plt.bar(' in code_string:
             code_string = code_string.replace('plt.bar(', 'plt.plot(')
             code_string = code_string.replace(', color=', ', marker="o", linewidth=2, color=')
     
     return code_string
 
-# Kod çıkarma fonksiyonu - SESSIZ
 def extract_code_from_response(response_text):
-    """Agent yanıtından kodu çıkar ama kullanıcıya gösterme"""
+    """Extract code from agent response"""
     code_blocks = []
     
-    # Python kod bloklarını bul
     python_blocks = re.findall(r'```python\n(.*?)```', response_text, re.DOTALL)
     code_blocks.extend(python_blocks)
     
-    # Eğer kod bloğu yoksa, farklı formatları dene
     if not code_blocks:
-        # Basit ``` formatı
         general_blocks = re.findall(r'```\n(.*?)```', response_text, re.DOTALL)
         for block in general_blocks:
             if any(keyword in block for keyword in ['plt.', 'sns.', 'px.', 'df[', 'import']):
                 code_blocks.append(block)
     
-    # Eğer hala kod yoksa, matplotlib içeren satırları ara
     if not code_blocks:
         lines = response_text.split('\n')
         code_lines = []
@@ -334,24 +291,18 @@ def extract_code_from_response(response_text):
     
     return code_blocks
 
-# Yanıttan kod bloklarını tamamen temizle
 def clean_response_from_code(response_text):
-    """AI yanıtından kod bloklarını ve kod benzeri satırları tamamen temizle"""
+    """Clean code blocks from AI response"""
     
-    # Python kod bloklarını kaldır
     cleaned_text = re.sub(r'```python\n.*?```', '', response_text, flags=re.DOTALL)
-    
-    # Diğer kod bloklarını kaldır
     cleaned_text = re.sub(r'```.*?```', '', cleaned_text, flags=re.DOTALL)
     
-    # Satır satır temizleme
     lines = cleaned_text.split('\n')
     clean_lines = []
     
     for line in lines:
         line_stripped = line.strip()
         
-        # Kod benzeri satırları filtrele
         if not any(keyword in line for keyword in [
             'import ', 'plt.', 'df[', 'df.', 'pd.', 'np.',
             '=', 'pandas', 'matplotlib', 'seaborn',
@@ -359,129 +310,88 @@ def clean_response_from_code(response_text):
             '.groupby(', '.plot(', '.show()', '.savefig(',
             'pd.DataFrame', 'np.random', 'plt.figure'
         ]):
-            # Sadece anlamlı açıklama satırları
             if line_stripped and not line_stripped.startswith('#'):
                 clean_lines.append(line)
     
-    # Temizlenmiş metni birleştir
     cleaned_text = '\n'.join(clean_lines)
-    
-    # Çok fazla boş satırları temizle
     cleaned_text = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned_text)
     
     return cleaned_text.strip()
 
-# Sidebar - Veri yükleme
+# Sidebar - Data loading - CSV/EXCEL ONLY
 with st.sidebar:
-    st.header("📁 1. Veri Kaynağı")
+    st.header("📁 1. Data Source")
     
-    source_type = st.radio(
-        "Veri Kaynağı Seçin:",
-        ["CSV/Excel Dosyası", "Örnek Veri Seti", "SQL Bağlantısı (Yakında)"]
+    uploaded_file = st.file_uploader(
+        "Select CSV/Excel File",
+        type=['csv', 'xlsx', 'xls'],
+        help="You can upload CSV or Excel files"
     )
     
-    if source_type == "CSV/Excel Dosyası":
-        uploaded_file = st.file_uploader(
-            "Dosya Seçin",
-            type=['csv', 'xlsx', 'xls'],
-            help="CSV veya Excel dosyası yükleyebilirsiniz"
-        )
-        
-        if uploaded_file is not None:
-            try:
-                with st.spinner("Dosya yükleniyor..."):
-                    if uploaded_file.name.endswith('.csv'):
-                        df = pd.read_csv(uploaded_file, encoding='utf-8')
-                    else:
-                        df = pd.read_excel(uploaded_file)
-                
-                st.session_state.df = df
-                
-                st.markdown('<div class="success-message">✅ Dosya başarıyla yüklendi!</div>',
-                           unsafe_allow_html=True)
-                
-                # Veri özeti
-                st.subheader("📊 Veri Özeti")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Satır Sayısı", len(df))
-                with col2:
-                    st.metric("Sütun Sayısı", len(df.columns))
-                
-                # Sütun bilgileri
-                with st.expander("🔍 Sütun Detayları"):
-                    for col in df.columns:
-                        dtype = str(df[col].dtype)
-                        null_count = df[col].isnull().sum()
-                        st.write(f"**{col}:** {dtype} ({null_count} eksik)")
-                        
-            except Exception as e:
-                st.error(f"❌ Dosya okuma hatası: {e}")
-    
-    elif source_type == "Örnek Veri Seti":
-        st.subheader("📋 Hazır Veri Setleri")
-        
-        dataset_choice = st.selectbox(
-            "Veri seti seçin:",
-            ["Satış Verileri", "E-ticaret Verileri", "Finansal Veriler"]
-        )
-        
-        if st.button("🚀 Veri Setini Yükle"):
-            if dataset_choice == "Satış Verileri":
-                # Satış verileri oluştur
-                np.random.seed(42)
-                dates = pd.date_range('2022-01-01', '2024-12-31', freq='D')
-                categories = ['Elektronik', 'Giyim', 'Kitap', 'Ev & Bahçe', 'Spor', 'Kozmetik']
-                regions = ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana']
-                
-                data = []
-                for date in dates:
-                    for _ in range(np.random.randint(1, 5)):
-                        data.append({
-                            'Tarih': date,
-                            'Kategori': np.random.choice(categories),
-                            'Bölge': np.random.choice(regions),
-                            'Satış_Tutarı': np.random.randint(100, 10000),
-                            'Adet': np.random.randint(1, 50),
-                            'Kar': np.random.randint(10, 2000),
-                            'Müşteri_Tipi': np.random.choice(['Bireysel', 'Kurumsal'])
-                        })
-                
-                st.session_state.df = pd.DataFrame(data)
-                
-            elif dataset_choice == "E-ticaret Verileri":
-                # E-ticaret verileri
-                np.random.seed(42)
-                products = ['Laptop', 'Telefon', 'Tablet', 'Kulaklık', 'Kamera', 'Saat']
-                
-                data = []
-                for i in range(1000):
-                    data.append({
-                        'Ürün': np.random.choice(products),
-                        'Fiyat': np.random.randint(500, 15000),
-                        'İndirim_Oranı': np.random.randint(0, 50),
-                        'Değerlendirme': np.random.uniform(3.0, 5.0),
-                        'Satış_Adedi': np.random.randint(1, 100),
-                        'Stok': np.random.randint(0, 500),
-                        'Tarih': pd.date_range('2024-01-01', periods=1000, freq='H')[i]
-                    })
-                
-                st.session_state.df = pd.DataFrame(data)
+    if uploaded_file is not None:
+        try:
+            with st.spinner("Loading file..."):
+                if uploaded_file.name.endswith('.csv'):
+                    df = pd.read_csv(uploaded_file, encoding='utf-8')
+                else:
+                    df = pd.read_excel(uploaded_file)
             
-            st.success("✅ Örnek veri seti yüklendi!")
-            st.rerun()
+            st.session_state.df = df
+            
+            st.markdown('<div class="success-message">✅ File loaded successfully!</div>',
+                       unsafe_allow_html=True)
+            
+            st.subheader("📊 Data Summary")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Rows", len(df))
+            with col2:
+                st.metric("Columns", len(df.columns))
+            
+            with st.expander("🔍 Column Details"):
+                for col in df.columns:
+                    dtype = str(df[col].dtype)
+                    null_count = df[col].isnull().sum()
+                    st.write(f"**{col}:** {dtype} ({null_count} missing)")
+                    
+        except Exception as e:
+            st.error(f"❌ File reading error: {e}")
     
-    else:
-        st.info("🔧 SQL bağlantısı özelliği yakında eklenecek.")
+    # Sample dataset - SINGLE BUTTON
+    st.subheader("📋 Sample Dataset")
+    
+    if st.button("🚀 Load Sales Data"):
+        np.random.seed(42)
+        dates = pd.date_range('2022-01-01', '2024-12-31', freq='D')
+        categories = ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports', 'Cosmetics']
+        regions = ['Istanbul', 'Ankara', 'Izmir', 'Bursa', 'Antalya', 'Adana']
+        customers = ['John', 'Sarah', 'Mike', 'Emily', 'David', 'Lisa', 'Alex', 'Emma']  # ENGLISH NAMES
+        
+        data = []
+        for date in dates:
+            for _ in range(np.random.randint(1, 5)):
+                data.append({
+                    'Date': date,
+                    'Category': np.random.choice(categories),
+                    'Region': np.random.choice(regions),
+                    'Customer': np.random.choice(customers),  # ADDED ENGLISH CUSTOMER COLUMN
+                    'Sales_Amount': np.random.randint(100, 10000),
+                    'Quantity': np.random.randint(1, 50),
+                    'Profit': np.random.randint(10, 2000),
+                    'Customer_Type': np.random.choice(['Individual', 'Corporate'])
+                })
+        
+        st.session_state.df = pd.DataFrame(data)
+        st.success("✅ Sample dataset loaded!")
+        st.rerun()
 
-# Ana içerik
+# Main content
 if st.session_state.df is not None:
     df = st.session_state.df
     
-    # Veri önizleme - SADECE VERİ KALİTESİ
-    st.header("👀 2. Veri Önizleme")
+    # Data preview
+    st.header("👀 2. Data Preview")
     
-    # Sadece veri kalitesi metrikleri - 4 sütun
     col1, col2, col3, col4 = st.columns(4)
     
     total_rows = len(df)
@@ -490,204 +400,187 @@ if st.session_state.df is not None:
     duplicate_count = df.duplicated().sum()
     
     with col1:
-        st.metric("📊 Toplam Satır", f"{total_rows:,}")
+        st.metric("📊 Total Rows", f"{total_rows:,}")
     
     with col2:
-        st.metric("📋 Sütun Sayısı", f"{len(df.columns)}")
+        st.metric("📋 Columns", f"{len(df.columns)}")
     
     with col3:
-        st.metric("✅ Veri Bütünlüğü", f"{completeness:.1f}%")
+        st.metric("✅ Data Integrity", f"{completeness:.1f}%")
     
     with col4:
-        st.metric("🔍 Eksik Değer", f"{missing_data}")
+        st.metric("🔍 Missing Values", f"{missing_data}")
     
-    # İsteğe bağlı: Daha detaylı bilgi için expander
-    with st.expander("🔧 Detaylı Veri Bilgisi"):
-        st.write(f"**Duplicate Kayıt:** {duplicate_count}")
-        st.write(f"**Sayısal Sütunlar:** {len(df.select_dtypes(include=[np.number]).columns)}")
-        st.write(f"**Kategorik Sütunlar:** {len(df.select_dtypes(include=['object', 'category']).columns)}")
+    with st.expander("🔧 Detailed Data Info"):
+        st.write(f"**Duplicate Records:** {duplicate_count}")
+        st.write(f"**Numeric Columns:** {len(df.select_dtypes(include=[np.number]).columns)}")
+        st.write(f"**Categorical Columns:** {len(df.select_dtypes(include=['object', 'category']).columns)}")
         if df.select_dtypes(include=['datetime']).columns.tolist():
-            st.write(f"**Tarih Sütunları:** {', '.join(df.select_dtypes(include=['datetime']).columns.tolist())}")
+            st.write(f"**Date Columns:** {', '.join(df.select_dtypes(include=['datetime']).columns.tolist())}")
 
-    # Analiz bölümü
-    st.header("🎯 3. Akıllı Veri Analizi")
+    # Analysis section
+    st.header("🎯 3. Smart Data Analysis")
     
-    # Analiz kategorileri - GENEL ANALİZ KALDIRILDI
+    # Analysis categories - "Forecast" and "Graphics"
     analysis_type = st.selectbox(
-        "🔍 Analiz Türü Seçin:",
+        "🔍 Select Analysis Type:",
         [
-            "Tahmin ve Forecasting", 
-            "Görselleştirme",
-            "İstatistiksel Analiz",
-            "Trend Analizi"
+            "Forecast",  # CHANGED from Prediction
+            "Graphics",  # CHANGED from Visualization
+            "Statistical Analysis",
+            "Trend Analysis"
         ]
     )
     
-    # Örnek sorular kategoriye göre - GÜNCELLENDİ
-    if analysis_type == "Tahmin ve Forecasting":
+    # Example questions by category
+    if analysis_type == "Forecast":  # CHANGED
         example_questions = [
-            "En çok satan ürünün gelecek aylardaki performansını tahmin et",
-            "2025 yılı satış tahminini yap"
+            "Predict next month's performance for best-selling product",
+            "Forecast 2025 sales",
+            "Perform trend analysis for next 6 months"
         ]
-    elif analysis_type == "Görselleştirme":
+    elif analysis_type == "Graphics":  # CHANGED
         example_questions = [
-            "Kategorilere göre satış dağılımını bar grafiği ile göster",
-            "Zaman içinde satış trendini çizgi grafiği ile göster",
-            "Bölgelere göre performansı pasta grafiği ile göster"
+            "Show sales distribution by categories with bar chart",
+            "Show sales trend over time with line chart",
+            "Show performance by regions with pie chart"
         ]
-    elif analysis_type == "İstatistiksel Analiz":
+    elif analysis_type == "Statistical Analysis":
         example_questions = [
-            "En çok satan kategoriyi bul",
-            "Ortalama satış tutarını hesapla"
+            "Find best-selling category",
+            "Calculate average sales amount",
+            "Analyze sales by regions"
         ]
-    elif analysis_type == "Trend Analizi":
+    elif analysis_type == "Trend Analysis":
         example_questions = [
-            "Yıllar arası büyüme oranını hesapla",
-            "En hızlı büyüyen kategorileri bul"
+            "Calculate year-over-year growth rate",
+            "Find fastest growing categories",
+            "Analyze monthly sales trends"
         ]
     
-    # Örnek sorular gösterimi
-    with st.expander(f"💡 {analysis_type} Örnek Soruları"):
+    # Example questions display
+    with st.expander(f"💡 {analysis_type} Example Questions"):
         for i, question in enumerate(example_questions, 1):
             if st.button(f"{i}. {question}", key=f"example_{i}"):
                 st.session_state.user_question = question
     
-    # Soru girişi
+    # Question input
     user_question = st.text_area(
-        "🤔 Sorunuzu buraya yazın:",
+        "🤔 Write your question here:",
         value=st.session_state.get('user_question', ''),
         height=120,
-        placeholder=f"Örneğin: {example_questions[0]}",
-        help="Detaylı sorular daha iyi sonuçlar verir"
+        placeholder=f"For example: {example_questions[0]}",
+        help="Detailed questions provide better results"
     )
     
-    # Analiz butonu
+    # Analysis button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         analyze_button = st.button(
-            "🚀 Analiz Et",
+            "🚀 Analyze",
             type="primary",
             use_container_width=True,
             disabled=not user_question.strip()
         )
     
-    # Analiz işlemi
+    # Analysis process
     if analyze_button and user_question.strip():
-        # Soruyu geçmişe ekle
         st.session_state.analysis_history.append({
             'question': user_question,
             'timestamp': datetime.now(),
             'type': analysis_type
         })
         
-        with st.spinner("🤖 AI analiz yapıyor ve sonuçları hazırlıyor..."):
+        with st.spinner("🤖 AI is analyzing and preparing results..."):
             try:
-                # Agent'ı oluştur
                 pandas_agent_executor = create_pandas_agent(df)
                 
-                # Geliştirilmiş prompt - ULTRA GÜÇLENDİRİLDİ
+                # ENGLISH prompt
                 enhanced_question = f"""
-                Analiz Türü: {analysis_type}
-                Kullanıcı Sorusu: "{user_question}"
+                Analysis Type: {analysis_type}
+                User Question: "{user_question}"
                 
-                ÇOK ÖNEMLİ: SORUYU DİKKATLE ANALİZ ET!
+                IMPORTANT: ANALYZE THE QUESTION CAREFULLY AND RESPOND IN ENGLISH!
                 
-                1. SORU ANALİZİ:
-                   Kullanıcı hangi sütun/kategoriye göre analiz istiyor?
-                   - "Bölgelere göre" → Bölge/Şehir sütununu kullan
-                   - "Kategorilere göre" → Kategori sütununu kullan
-                   - "Müşterilere göre" → Müşteri sütununu kullan
-                   - "Ürünlere göre" → Ürün sütununu kullan
+                1. QUESTION ANALYSIS:
+                   Which column/category does the user want to analyze?
+                   - "by regions" → Use Region/City column
+                   - "by categories" → Use Category column
+                   - "by customers" → Use Customer column
+                   - "by products" → Use Product column
                 
-                2. GRAFİK TÜRÜ ANALİZİ:
-                   Kullanıcı hangi grafik türü istiyor?
-                   - "pasta grafiği" → MUTLAKA plt.pie() kullan
-                   - "bar grafiği" → plt.bar() kullan
-                   - "çizgi grafiği" → plt.plot() kullan
+                2. CHART TYPE ANALYSIS:
+                   What chart type does the user want?
+                   - "pie chart" → MUST use plt.pie()
+                   - "bar chart" → use plt.bar()
+                   - "line chart" → use plt.plot()
                 
-                3. YANIT DİLİ: MUTLAKA TÜRKÇE
+                3. RESPONSE LANGUAGE: ENGLISH ONLY
                 
-                4. EĞER TAHMİN/FORECASTING SORGUSU İSE:
-                   - Zaman serisi analizi yap
-                   - Trend hesapla (artan/azalan/sabit)
-                   - Gelecek değerleri tahmin et
-                   - Matematiksel modelleme kullan
-                   - Sonuçları görselleştir
-                   - Analizi Türkçe açıkla
+                4. CHART DIMENSIONS (VERY IMPORTANT):
+                   - Use plt.figure(figsize=(6, 4)) - VERY SMALL SIZE!
+                   - Use plt.xticks(rotation=45, ha='right', fontsize=7) - PREVENT TEXT OVERLAP!
+                   - Use plt.tight_layout() (NEVER use plt.show()!)
+                   - All font sizes should be very small: fontsize=7-9
+                   - Chart title fontsize=9
                 
-                5. EĞER GÖRSELLEŞTİRME SORGUSU İSE:
-                   - Kullanıcının istediği SÜTUNU kullan
-                   - Kullanıcının istediği GRAFİK TÜRÜNÜ kullan
-                   - DOĞRU SÜTUN SEÇİMİ ÇOK ÖNEMLİ!
-                   - plt.tight_layout() kullan (plt.show() ASLA KULLANMA!)
-                   - Türkçe başlık ve etiketler ekle
-                   - Grafik boyutunu ayarla: plt.figure(figsize=(10, 6))
+                5. IF PREDICTION/FORECASTING QUERY:
+                   - Perform time series analysis
+                   - Calculate trend (increasing/decreasing/stable)
+                   - Predict future values
+                   - Use mathematical modeling
+                   - Visualize results
+                   - Explain analysis in English
                 
-                6. GENEL GEREKSINIMLER:
-                   - Kullanıcının sorusunu KELİME KELİME analiz et
-                   - YANLIŞLIK YAPMA - doğru sütunu seç
-                   - Sonuçları detaylı olarak Türkçe açıkla
-                   - Sayısal değerleri belirt
-                   - Python kodunu ```python ile başlat
+                6. IF VISUALIZATION QUERY:
+                   - Use the column the user wants
+                   - Use the chart type the user wants
+                   - CORRECT COLUMN SELECTION IS CRITICAL!
+                   - Use plt.tight_layout()
+                   - English titles and labels
                 
-                MEVCUT VERİ SÜTUNLARI:
+                AVAILABLE DATA COLUMNS:
                 {', '.join(df.columns.tolist())}
                 
-                KRITIK: 
-                - Kullanıcının istediği sütunu MUTLAKA kullan
-                - Yanlış sütun seçme!
-                - Grafik türünü doğru seç
-                - Tüm açıklamaları Türkçe yap
+                CRITICAL: 
+                - Use the column the user requests
+                - Don't select wrong column!
+                - Select correct chart type
+                - All explanations in English
+                - Optimize chart dimensions (6x4)
                 """
                 
-                # Agent'ı çalıştır - DAHA KARARLI HATA YÖNETİMİ
                 try:
-                    # Önce basit bir test sorusu ile agent'ın çalışıp çalışmadığını kontrol et
-                    test_response = pandas_agent_executor.invoke("Veri setinin ilk 3 satırını göster")
-                    
-                    # Test başarılıysa asıl soruyu sor
                     response = pandas_agent_executor.invoke(enhanced_question)
                     st.session_state.agent_response = response
                     
                 except Exception as agent_error:
-                    # Agent parsing hatası durumunda - SORU TÜRÜNE GÖRE AKILLI ANALİZ
-                    if analysis_type == "Tahmin ve Forecasting":
+                    if analysis_type == "Forecast":
                         simple_response = create_simple_analysis(df, user_question, analysis_type)
-                    elif any(word in user_question.lower() for word in ['grafik', 'görsel', 'chart', 'göster', 'çiz', 'pasta', 'pie', 'bar', 'çubuk']):
-                        # Görselleştirme soruları için bypass sistemi kullan
-                        simple_response = "Grafik analizi hazırlanıyor..."
+                    elif any(word in user_question.lower() for word in ['chart', 'visual', 'show', 'plot', 'pie', 'bar']):
+                        simple_response = "Chart analysis ready..."
                     else:
-                        # Diğer sorular için genel analiz
-                        simple_response = create_simple_analysis(df, user_question, "Genel Analiz")
+                        simple_response = create_simple_analysis(df, user_question, "General Analysis")
                     
                     st.session_state.agent_response = {"output": simple_response}
                 
             except Exception as e:
-                st.error(f"❌ Analiz sırasında hata oluştu: {e}")
-                st.write("**Hata Detayları:**")
-                st.code(str(e))
-                
-                # Hata durumunda basit analiz öner
-                st.info("💡 Daha basit bir soru deneyin veya veri formatını kontrol edin.")
+                st.error(f"❌ Analysis error: {e}")
 
-# Sonuçları göster - KOD BLOKLARI TAMAMEN GİZLİ
+# Show results
 if st.session_state.agent_response is not None:
-    st.header("📊 Analiz Sonuçları")
+    st.header("📊 Analysis Results")
     
     response = st.session_state.agent_response
     
-    # Yanıtı çıkar
     if isinstance(response, dict):
-        agent_output = response.get('output', 'Sonuç bulunamadı.')
+        agent_output = response.get('output', 'No result found.')
     else:
         agent_output = str(response)
     
-    # Kod bloklarını tamamen temizle
     clean_response = clean_response_from_code(agent_output)
     
-    # Eğer temizledikten sonra çok az metin kaldıysa, daha iyi temizleme yap
     if len(clean_response.strip()) < 50:
-        # Alternatif temizleme - satır satır kontrol et
         lines = agent_output.split('\n')
         clean_lines = []
         in_code_block = False
@@ -698,235 +591,215 @@ if st.session_state.agent_response is not None:
                 continue
             
             if not in_code_block:
-                # Kod benzeri satırları filtrele
                 if not any(keyword in line for keyword in ['import ', 'plt.', 'df[', 'df.', '=', 'pandas', 'matplotlib']):
-                    if line.strip():  # Boş olmayan satırlar
+                    if line.strip():
                         clean_lines.append(line)
         
         clean_response = '\n'.join(clean_lines).strip()
     
-    # AI'nın temiz yanıtını göster
-    st.subheader("🤖 AI Asistanının Yorumu")
+    st.subheader("🤖 AI Assistant's Response")
     if clean_response:
         st.write(clean_response)
     else:
-        st.write("Analiz tamamlandı. Grafik aşağıda gösterilmektedir.")
+        st.write("Analysis completed. Chart shown below.")
     
-    # SON ÇARE: AGENT BYPASS - DİREKT GRAFİK SİSTEMİ
-    if any(word in user_question.lower() for word in ['grafik', 'görsel', 'chart', 'göster', 'çiz', 'pasta', 'pie', 'bar', 'çubuk', 'dağılım']):
+    # Direct chart system
+    if any(word in user_question.lower() for word in ['chart', 'visual', 'show', 'plot', 'pie', 'bar', 'distribution']):
         
-        # Kullanıcının hangi sütunu istediğini analiz et
         categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         
-        # Sütun seçimi - SORU ANALİZİ
         target_cat_col = None
         target_num_col = None
         
         query_lower = user_question.lower()
         
-        # Kategorik sütun seçimi
-        if 'bölge' in query_lower or 'şehir' in query_lower:
+        # Column selection
+        if 'region' in query_lower or 'city' in query_lower:
             for col in categorical_cols:
-                if any(word in col.lower() for word in ['bölge', 'şehir', 'region', 'city']):
+                if any(word in col.lower() for word in ['region', 'city']):
                     target_cat_col = col
                     break
-        elif 'kategori' in query_lower:
+        elif 'categor' in query_lower:
             for col in categorical_cols:
-                if 'kategori' in col.lower() or 'category' in col.lower():
+                if 'categor' in col.lower():
                     target_cat_col = col
                     break
-        elif 'müşteri' in query_lower:
+        elif 'customer' in query_lower:
             for col in categorical_cols:
-                if 'müşteri' in col.lower() or 'customer' in col.lower():
+                if 'customer' in col.lower():
                     target_cat_col = col
                     break
-        elif 'ürün' in query_lower:
+        elif 'product' in query_lower:
             for col in categorical_cols:
-                if 'ürün' in col.lower() or 'product' in col.lower():
+                if 'product' in col.lower():
                     target_cat_col = col
                     break
         
-        # Sayısal sütun seçimi
-        if 'satış' in query_lower or 'tutar' in query_lower:
+        if 'sales' in query_lower or 'amount' in query_lower:
             for col in numeric_cols:
-                if any(word in col.lower() for word in ['satış', 'tutar', 'sales', 'revenue']):
+                if any(word in col.lower() for word in ['sales', 'amount', 'revenue']):
                     target_num_col = col
                     break
-        elif 'adet' in query_lower or 'miktar' in query_lower:
+        elif 'quantity' in query_lower:
             for col in numeric_cols:
-                if any(word in col.lower() for word in ['adet', 'miktar', 'quantity']):
+                if any(word in col.lower() for word in ['quantity', 'qty']):
                     target_num_col = col
                     break
-        elif 'kar' in query_lower:
+        elif 'profit' in query_lower:
             for col in numeric_cols:
-                if 'kar' in col.lower() or 'profit' in col.lower():
+                if 'profit' in col.lower():
                     target_num_col = col
                     break
         
-        # Varsayılan seçimler
         if not target_cat_col and categorical_cols:
             target_cat_col = categorical_cols[0]
         if not target_num_col and numeric_cols:
             target_num_col = numeric_cols[0]
         
-        # Grafik oluştur
+        # Create chart - OPTIMIZED DIMENSIONS
         if target_cat_col and target_num_col:
-            st.subheader("📈 Görselleştirme")
+            st.subheader("📈 Graphics")  # CHANGED
             
             try:
-                import matplotlib.pyplot as plt
-                plt.figure(figsize=(10, 6))
+                plt.figure(figsize=(6, 4))  # VERY SMALL SIZE
+                plt.rcParams['font.size'] = 8
                 
-                # Veriyi grupla
                 data_grouped = df.groupby(target_cat_col)[target_num_col].sum()
                 
-                # Grafik türü seçimi
-                if any(word in query_lower for word in ['pasta', 'pie', 'dağılım']):
-                    # PASTA GRAFİĞİ
+                if any(word in query_lower for word in ['pie', 'distribution']):
+                    # PIE CHART - OPTIMIZED
                     colors = plt.cm.Set3(range(len(data_grouped)))
                     plt.pie(data_grouped.values, labels=data_grouped.index, autopct='%1.1f%%', 
-                           startangle=90, colors=colors)
-                    plt.title(f'{target_cat_col} Bazında {target_num_col} Dağılımı', fontsize=14, pad=20)
+                           startangle=90, colors=colors, textprops={'fontsize': 7})
+                    plt.title(f'{target_cat_col} vs {target_num_col} Distribution', fontsize=9, pad=10)
                     
-                elif any(word in query_lower for word in ['çizgi', 'line', 'trend']):
-                    # ÇİZGİ GRAFİĞİ
-                    plt.plot(data_grouped.index, data_grouped.values, marker='o', linewidth=2, markersize=8, color='blue')
-                    plt.title(f'{target_cat_col} Bazında {target_num_col} Trendi', fontsize=14)
-                    plt.xlabel(target_cat_col)
-                    plt.ylabel(target_num_col)
-                    plt.xticks(rotation=45, ha='right')
+                elif any(word in query_lower for word in ['line', 'trend']):
+                    # LINE CHART - OPTIMIZED
+                    plt.plot(data_grouped.index, data_grouped.values, marker='o', linewidth=2, markersize=4, color='blue')
+                    plt.title(f'{target_cat_col} vs {target_num_col} Trend', fontsize=9)
+                    plt.xlabel(target_cat_col, fontsize=8)
+                    plt.ylabel(target_num_col, fontsize=8)
+                    plt.xticks(rotation=45, ha='right', fontsize=7)
+                    plt.yticks(fontsize=7)
                     plt.grid(True, alpha=0.3)
                     
                 else:
-                    # BAR GRAFİĞİ
+                    # BAR CHART - OPTIMIZED
                     colors = plt.cm.viridis(range(len(data_grouped)))
                     plt.bar(data_grouped.index, data_grouped.values, color=colors, alpha=0.8)
-                    plt.title(f'{target_cat_col} Bazında {target_num_col} Dağılımı', fontsize=14)
-                    plt.xlabel(target_cat_col)
-                    plt.ylabel(target_num_col)
-                    plt.xticks(rotation=45, ha='right')
+                    plt.title(f'{target_cat_col} vs {target_num_col} Distribution', fontsize=9)
+                    plt.xlabel(target_cat_col, fontsize=8)
+                    plt.ylabel(target_num_col, fontsize=8)
+                    plt.xticks(rotation=45, ha='right', fontsize=7)
+                    plt.yticks(fontsize=7)
                 
-                plt.tight_layout()
+                plt.tight_layout()  # PREVENT TEXT OVERLAP
                 st.pyplot(plt, use_container_width=True)
                 
-                # Analiz özeti göster
-                st.write(f"**📊 Analiz Özeti:**")
-                st.write(f"- **Seçilen kategori:** {target_cat_col}")
-                st.write(f"- **Analiz edilen değer:** {target_num_col}")
-                st.write(f"- **En yüksek değer:** {data_grouped.idxmax()} ({data_grouped.max():,.2f})")
-                st.write(f"- **Toplam değer:** {data_grouped.sum():,.2f}")
-                st.write(f"- **Kategori sayısı:** {len(data_grouped)}")
+                # Analysis summary
+                st.write(f"**📊 Analysis Summary:**")
+                st.write(f"- **Selected category:** {target_cat_col}")
+                st.write(f"- **Analyzed value:** {target_num_col}")
+                st.write(f"- **Highest value:** {data_grouped.idxmax()} ({data_grouped.max():,.2f})")
+                st.write(f"- **Total value:** {data_grouped.sum():,.2f}")
+                st.write(f"- **Number of categories:** {len(data_grouped)}")
                 
             except Exception as e:
-                st.error(f"Grafik oluşturulurken hata: {e}")
+                st.error(f"Chart creation error: {e}")
     
-    # Kod çıkarma ve çalıştırma - İKİNCİL SİSTEM
+    # Code extraction and execution
     code_blocks = extract_code_from_response(agent_output)
     
-    if code_blocks and not any(word in user_question.lower() for word in ['grafik', 'görsel', 'chart', 'göster', 'çiz', 'pasta', 'pie', 'bar', 'çubuk', 'dağılım']):
-        st.subheader("📈 Ek Görselleştirme")
+    if code_blocks and not any(word in user_question.lower() for word in ['chart', 'visual', 'show', 'plot', 'pie', 'bar']):
+        st.subheader("📈 Additional Graphics")  # CHANGED
         
         for i, code_block in enumerate(code_blocks):
-            # Kullanıcının isteğine göre kodu değiştir
             modified_code = modify_code_based_on_request(code_block, user_question)
-            
-            # Değiştirilmiş kodu çalıştır
             result = execute_agent_code_advanced(modified_code, df)
             
             if result['success']:
-                # Matplotlib figürlerini göster
                 for fig in result['matplotlib_figs']:
                     st.pyplot(fig, use_container_width=True)
-                break  # İlk başarılı grafik yeterli
+                break
     
-    else:
-        # Eğer grafik kodu bulunamadıysa hiçbir şey gösterme - UYARISIZ
-        pass  # Hiç uyarı yok
-    
-    # Gelişmiş özellikler
-    with st.expander("🔧 Gelişmiş Ayarlar"):
+    # Advanced options
+    with st.expander("🔧 Advanced Options"):
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("🗑️ Sonuçları Temizle"):
+            if st.button("🗑️ Clear Results"):
                 st.session_state.agent_response = None
                 st.session_state.generated_plots = []
                 st.rerun()
         
         with col2:
-            if st.button("📥 Sonuçları İndir"):
-                # Temiz metni indir
+            if st.button("📥 Download Results"):
                 st.download_button(
-                    label="📄 Analiz Raporunu İndir",
+                    label="📄 Download Analysis Report",
                     data=clean_response,
-                    file_name=f"analiz_raporu_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+                    file_name=f"analysis_report_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
                     mime="text/plain"
                 )
 
-# Sidebar - Analiz geçmişi
+# Sidebar - Analysis history
 if st.session_state.analysis_history:
     with st.sidebar:
-        st.header("📝 Analiz Geçmişi")
+        st.header("📝 Analysis History")
         
-# Sidebar - Analiz geçmişi
-if st.session_state.analysis_history:
-    with st.sidebar:
-        st.header("📝 Analiz Geçmişi")
-        
-        for i, item in enumerate(reversed(st.session_state.analysis_history[-5:])):  # Son 5 analiz
+        for i, item in enumerate(reversed(st.session_state.analysis_history[-5:])):  # Last 5 analyses
             with st.expander(f"{item['type']} - {item['timestamp'].strftime('%H:%M')}"):
-                st.write(f"**Soru:** {item['question'][:100]}...")
-                if st.button(f"🔄 Tekrar Çalıştır", key=f"rerun_{i}"):
+                st.write(f"**Question:** {item['question'][:100]}...")
+                if st.button(f"🔄 Re-run", key=f"rerun_{i}"):
                     st.session_state.user_question = item['question']
                     st.rerun()
 
 elif st.session_state.df is None:
-    # Veri yüklememiş kullanıcı için rehber
+    # Welcome screen
     st.markdown("""
     <div style="text-align: center; padding: 3rem;">
-        <h2>👋 Hoş Geldiniz!</h2>
+        <h2>👋 Welcome!</h2>
         <p style="font-size: 1.2rem; color: #666;">
-            Başlamak için sol taraftaki panelden bir veri dosyası yükleyin
-            veya örnek veri seti ile deneyin.
+            To get started, upload a data file from the left panel
+            or try the sample dataset.
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Özellikler tanıtımı
+    # Features introduction
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("""
-        ### 🎯 Akıllı Analiz
-        - Doğal dille soru sorun
-        - Otomatik veri keşfi
-        - İstatistiksel analiz
+        ### 🎯 Smart Analysis
+        - Ask questions in natural language
+        - Automatic data discovery
+        - Statistical analysis
         """)
     
     with col2:
         st.markdown("""
-        ### 📈 Tahmin Modelleri
-        - Zaman serisi analizi
-        - Trend tahmini
-        - Gelecek dönem projeksiyonu
+        ### 📈 Prediction Models
+        - Time series analysis
+        - Trend forecasting
+        - Future period projections
         """)
     
     with col3:
         st.markdown("""
-        ### 📊 Görselleştirme
-        - Otomatik grafik oluşturma
-        - İnteraktif çizelgeler
-        - Özelleştirilebilir görünüm
+        ### 📊 Visualization
+        - Automatic chart generation
+        - Interactive charts
+        - Customizable views
         """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; padding: 1rem;">
-    <p><strong>💡 Kullanım İpuçları:</strong></p>
-    <p>• Tahmin soruları için "gelecek", "tahmin", "2025" gibi anahtar kelimeler kullanın</p>
-    <p>• Grafik için "göster", "çiz", "görselleştir" ifadelerini ekleyin</p>
-    <p>• Detaylı sorular daha iyi sonuçlar verir</p>
+    <p><strong>💡 Usage Tips:</strong></p>
+    <p>• For predictions use keywords like "future", "forecast", "2025"</p>
+    <p>• For charts use "show", "plot", "visualize"</p>
+    <p>• Detailed questions provide better results</p>
 </div>
 """, unsafe_allow_html=True)
